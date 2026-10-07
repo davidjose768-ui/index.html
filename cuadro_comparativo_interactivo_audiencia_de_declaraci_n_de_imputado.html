@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuadro Comparativo Interactivo: Audiencia de Declaración de Imputado (Honduras)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- FontAwesome / Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-full { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+            .print-card { page-break-inside: avoid; border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        // Data Source for Comparison
+        const COMPARISON_DATA = [
+            {
+                id: 'tipo_audiencia',
+                criterion: '1. Tipo de Audiencia',
+                icon: 'fa-gavel',
+                category: 'Procedimiento',
+                grave: {
+                    summary: 'Audiencia de Declaración de Imputado en Proceso Ordinario (Con Imputado Privado de Libertad)',
+                    description: 'Primera comparecencia formal del imputado en el proceso penal ordinario bajo condición de aprehensión previa, detención preventiva o citación judicial formal.',
+                    details: 'Se desarrolla con un rigor garantista estricto debido a que se discute de manera inmediata la libertad personal del ciudadano. El imputado comparece normalmente custodiado.',
+                    articles: 'Arts. 101, 285, 286 CPP'
+                },
+                menosGrave: {
+                    summary: 'Audiencia de Declaración de Imputado (Proceso Ordinario, Simplificado o Expedito de Flagrancia)',
+                    description: 'Primera comparecencia formal del imputado en el proceso ordinario o sujeto a la tramitación de un procedimiento expedito para delitos en flagrancia o simplificado.',
+                    details: 'Permite un abordaje más flexible con altas probabilidades de resolver el conflicto de forma temprana mediante salidas alternativas o citación libre.',
+                    articles: 'Arts. 58 num. 7, 101, 285 CPP'
+                }
+            },
+            {
+                id: 'medida_cautelar',
+                criterion: '2. Tipo de Medida Cautelar',
+                icon: 'fa-user-lock',
+                category: 'Medidas Cautelares',
+                grave: {
+                    summary: 'Detención Judicial / Prisión Preventiva (Privativa de Libertad)',
+                    description: 'Decreto de Detención Judicial por el término de la inquisición (hasta 6 días) o Prisión Preventiva (Art. 178 CPP).',
+                    details: 'Por regla general, dada la gravedad de la pena (superior a 5 años), la ley presume un alto riesgo de fuga u obstaculización de la verdad. Excepcionalmente se otorgan medidas sustitutivas si se prueba arraigo absoluto e inamovible.',
+                    articles: 'Arts. 172, 178, 179, 180 CPP'
+                },
+                menosGrave: {
+                    summary: 'Medidas Cautelares Sustitutivas de la Prisión Preventiva (No Privativas de Libertad)',
+                    description: 'Aplicación de una o varias medidas sustitutivas del Art. 173 CPP o irrestricta libertad con restricciones mínimas.',
+                    details: 'Incluyen: arresto domiciliario, firma periódica en el juzgado, prohibición de salir del país, caución económica o prohibición de acercarse a la víctima o lugares determinados.',
+                    articles: 'Art. 173 CPP'
+                }
+            },
+            {
+                id: 'organo_judicial',
+                criterion: '3. Órgano Judicial Competente',
+                icon: 'fa-building-columns',
+                category: 'Competencia',
+                grave: {
+                    summary: 'Juzgado de Letras de lo Penal o Tribunales de Competencia Nacional',
+                    description: 'Juez de Letras de lo Penal de la circunscripción correspondiente o Juzgados de Letras con Competencia Territorial Nacional en Materia Penal / Extorsión / Criminalidad Organizada.',
+                    details: 'Atendido por jueces de carrera especializada para el control de garantías e instrucción formal del proceso ordinario.',
+                    articles: 'Arts. 54, 58 num. 1 y 2 CPP'
+                },
+                menosGrave: {
+                    summary: 'Juzgado de Letras de lo Penal o Juzgado de Paz a Prevención',
+                    description: 'Juzgado de Letras de lo Penal competente, o Juzgado de Paz actuando a prevención en municipios donde no exista Juez de Letras.',
+                    details: 'Los Jueces de Paz pueden recepcionar la declaración inicial y aplicar medidas cautelares urgentes remitiendo las actuaciones al Juez de Letras.',
+                    articles: 'Arts. 58, 59 num. 1 CPP'
+                }
+            },
+            {
+                id: 'peticion_mp',
+                criterion: '4. Petición del Ministerio Público',
+                icon: 'fa-user-shield',
+                category: 'Estrategia de Partes',
+                grave: {
+                    summary: 'Solicita la Imposición de la Detención Judicial / Prisión Preventiva',
+                    description: 'Pide formalmente el decreto de Detención Judicial por el término legal y la fijación de Audiencia Inicial dentro de 6 días.',
+                    details: 'Acredita indicios racionales de la comisión del delito y argumenta los peligros procesales de Fuga (Art. 179) o de Obstaculización de la Investigación (Art. 180).',
+                    articles: 'Arts. 92, 178, 292 CPP'
+                },
+                menosGrave: {
+                    summary: 'Solicita Medidas Sustitutivas y/o Promueve Salidas Alternativas',
+                    description: 'Solicita medidas no privativas de libertad del Art. 173 CPP o impulsa Salidas Alternativas al Proceso.',
+                    details: 'Ofrece la apertura para la Conciliación (Art. 45), Suspensión Condicional de la Persecución Penal (Art. 36) o Criterio de Oportunidad (Art. 28) si se cumplen las condiciones de reparación a la víctima.',
+                    articles: 'Arts. 28, 36, 45, 173, 292 CPP'
+                }
+            },
+            {
+                id: 'peticion_defensa',
+                criterion: '5. Petición de la Defensa Técnica',
+                icon: 'fa-scale-balanced',
+                category: 'Estrategia de Partes',
+                grave: {
+                    summary: 'Solicita Medidas Sustitutivas (Desvirtuando Peligros Procesales) o Custodia Adecuada',
+                    description: 'Acredita formalmente el arraigo (familiar, laboral, domiciliario y patrimonial) del imputado para contrarrestar la prisión preventiva.',
+                    details: 'Subsidiaramente solicita el centro de internamiento o penitenciario que garantice la integridad física y seguridad del imputado durante los 6 días.',
+                    articles: 'Arts. 14, 15, 101, 173 CPP'
+                },
+                menosGrave: {
+                    summary: 'Solicita Libertad Mantenida / Medida Mínima y Solución Alternativa del Conflicto',
+                    description: 'Pide la libertad simple o la medida sustitutiva menos Gravosa (ej. firma mensual) y promueve activamente la extinción de la acción penal.',
+                    details: 'Promueve acuerdos conciliatorios con la víctima para reparar los daños de inmediato o solicita la Suspensión Condicional de la Persecución Penal.',
+                    articles: 'Arts. 36, 45, 173 CPP'
+                }
+            },
+            {
+                id: 'fundamentos_legales',
+                criterion: '6. Fundamentos Aplicables',
+                icon: 'fa-book-bookmark',
+                category: 'Marco Legal',
+                grave: {
+                    summary: 'Constitución + Código Procesal Penal (Sección de Prisión Preventiva y Delitos Graves)',
+                    description: 'Normativa constitucional y procesal penal orientada a delitos con sanción privativa de libertad severa.',
+                    details: 'Constitución: Arts. 84, 89, 90, 92. Código Procesal Penal: Arts. 101, 172, 178, 179, 180, 284, 285, 286, 288, 292. Código Penal vigente.',
+                    articles: 'Const. Arts. 84-92; CPP Arts. 178-180'
+                },
+                menosGrave: {
+                    summary: 'Constitución + CPP (Sección de Medidas Sustitutivas y Salidas Alternativas)',
+                    description: 'Normativa sustantiva y procesal enfocada en la mínima intervención y resolución alternativa.',
+                    details: 'Constitución: Arts. 84, 89, 90, 92. Código Procesal Penal: Arts. 28, 36, 45, 101, 172, 173, 284, 285, 286, 288, 292. Código Penal vigente.',
+                    articles: 'Const. Arts. 84-92; CPP Arts. 28, 36, 45, 173'
+                }
+            },
+            {
+                id: 'indicacion_delito',
+                criterion: '7. Indicación del Delito',
+                icon: 'fa-triangle-exclamation',
+                category: 'Derecho Penal Sustantivo',
+                grave: {
+                    summary: 'Delitos con Pena Privativa de Libertad Superior a 5 Años',
+                    description: 'Ilícitos penales cuya pena abstracta o límite mínimo excede los 5 años de prisión o son de alto impacto social.',
+                    details: 'Ejemplos en el Código Penal Hondureño: Homicidio, Asesinato, Secuestro, Extorsión, Tráfico Drogas a gran escala, Violación, Robo con Violencia Agravado.',
+                    articles: 'Código Penal de Honduras (Decreto 130-2017)'
+                },
+                menosGrave: {
+                    summary: 'Delitos con Pena Máxima de hasta 5 Años o Penas No Privativas de Libertad',
+                    description: 'Ilícitos penales sancionados con penas de prisión de corta duración o sanciones alternativas (multa, inhabilitación).',
+                    details: 'Ejemplos en el Código Penal Hondureño: Lesiones leves/menos graves, Hurto, Estafa de menor cuantía, Daños, Amenazas, Delitos imprudentes.',
+                    articles: 'Código Penal de Honduras (Decreto 130-2017)'
+                }
+            },
+            {
+                id: 'siguiente_audiencia',
+                criterion: '8. Siguiente Audiencia y Plazo Determinado',
+                icon: 'fa-calendar-days',
+                category: 'Plazos Procesales',
+                grave: {
+                    summary: 'AUDIENCIA INICIAL en el plazo estricto de HASTA SEIS (6) DÍAS',
+                    description: 'Plazo legal perentorio e improrrogable contado a partir de la fecha en que se decreta la Detención Judicial.',
+                    details: 'Plazo acelerado diseñado para controlar judicialmente la privación de libertad cautelar y resolver el Auto de Formal Procesamiento o Sobreseimiento.',
+                    articles: 'Art. 292 del Código Procesal Penal'
+                },
+                menosGrave: {
+                    summary: 'AUDIENCIA INICIAL en el plazo de HASTA SESENTA (60) DÍAS',
+                    description: 'Plazo fijado en un máximo de 60 días calendarios contados desde la imposición de las medidas sustitutivas o libertad.',
+                    details: 'Permite a las partes recabar prueba documental/pericial con holgura y perfeccionar los acuerdos conciliatorios o salidas alternativas.',
+                    articles: 'Art. 292 del Código Procesal Penal'
+                }
+            }
+        ];
+
+        // Sample Crimes Database for Simulator
+        const CRIMES_DATABASE = [
+            { name: 'Homicidio', severity: 'grave', penalty: '15 a 20 años de prisión', description: 'Atentar contra la vida de una persona.', typicalMeasure: 'Prisión Preventiva / Detención Judicial', nextHearingDays: '6 días' },
+            { name: 'Asesinato', severity: 'grave', penalty: '20 a 25 años o Prisión de por Vida', description: 'Atentar contra la vida con alevosía o ensañamiento.', typicalMeasure: 'Prisión Preventiva / Detención Judicial', nextHearingDays: '6 días' },
+            { name: 'Extorsión', severity: 'grave', penalty: '10 a 15 años de prisión + Multa', description: 'Obligar con violencia/intimidación a realizar u omitir un acto patrimonial.', typicalMeasure: 'Prisión Preventiva (Jurisdicción Nacional)', nextHearingDays: '6 días' },
+            { name: 'Robo con Violencia Agravado', severity: 'grave', penalty: '6 a 9 años de prisión', description: 'Apoderamiento ilegítimo de bien mueble empleando violencia o intimidación.', typicalMeasure: 'Detención Judicial / Prisión Preventiva', nextHearingDays: '6 días' },
+            { name: 'Tráfico de Drogas a Gran Escala', severity: 'grave', penalty: '7 a 10 años de prisión', description: 'Posesión y transporte no autorizado de estupefacientes a gran escala.', typicalMeasure: 'Prisión Preventiva', nextHearingDays: '6 días' },
+            { name: 'Hurto Simple', severity: 'menos_grave', penalty: '1 a 3 años de prisión / Trabajo Comunitario', description: 'Apoderamiento de cosa mueble ajena sin violencia ni fuerza en las cosas.', typicalMeasure: 'Medidas Sustitutivas (Art. 173 CPP)', nextHearingDays: '60 días' },
+            { name: 'Lesiones Leves / Menos Graves', severity: 'menos_grave', penalty: '1 a 3 años de prisión o Multa', description: 'Causar daño a la integridad física o salud que requiere asistencia médica.', typicalMeasure: 'Medidas Sustitutivas / Conciliación', nextHearingDays: '60 días' },
+            { name: 'Amenazas Simples', severity: 'menos_grave', penalty: '6 meses a 2 años o Multa', description: 'Anunciar a otro la causación de un mal constitutivo o no de delito.', typicalMeasure: 'Medidas Sustitutivas / Conciliación', nextHearingDays: '60 días' },
+            { name: 'Daños a la Propiedad', severity: 'menos_grave', penalty: 'Multa o 1 a 3 años de prisión', description: 'Destruir, inutilizar o deteriorar un bien ajeno.', typicalMeasure: 'Medidas Sustitutivas / Conciliación', nextHearingDays: '60 días' },
+            { name: 'Estafa de Menor Cuantía', severity: 'menos_grave', penalty: '1 a 4 años de prisión', description: 'Engaño bastante para inducir a error y causar perjuicio patrimonial.', typicalMeasure: 'Medidas Sustitutivas / Acuerdo de Reparación', nextHearingDays: '60 días' }
+        ];
+
+        // Quiz Questions Data
+        const QUIZ_QUESTIONS = [
+            {
+                question: "¿Cuál es el plazo legal máximo para celebrar la Audiencia Inicial si al imputado se le decretó Detención Judicial por un delito grave?",
+                options: ["Dentro de los 3 días hábiles", "Dentro de los 6 días siguientes", "Dentro de los 30 días calendarios", "Dentro de los 60 días calendarios"],
+                correctIndex: 1,
+                explanation: "Conforme al Artículo 292 del CPP de Honduras, cuando el imputado queda privado de libertad cautelarmente, la Audiencia Inicial debe realizarse dentro de los 6 días siguientes a la emisión del auto."
+            },
+            {
+                question: "En una Audiencia de Declaración de Imputado por un delito menos grave con pena no mayor de 5 años, ¿cuál es el plazo máximo para la Audiencia Inicial?",
+                options: ["Hasta 6 días", "Hasta 15 días", "Hasta 60 días", "Hasta 90 días"],
+                correctIndex: 2,
+                explanation: "El Art. 292 del CPP establece que si el imputado goza de medidas sustitutivas o libertad, la Audiencia Inicial se señalará dentro de un plazo no mayor de 60 días calendarios."
+            },
+            {
+                question: "¿Qué tipo de medida cautelar es la regla general en la Declaración de Imputado para un delito grave como el Homicidio o la Extorsión?",
+                options: ["Conciliación inmediata", "Presentación periódica cada 15 días", "Detención Judicial / Prisión Preventiva (Art. 178 CPP)", "Caución económica únicamente"],
+                correctIndex: 2,
+                explanation: "En delitos graves (pena mayor de 5 años), el Ministerio Público solicita la Detención Judicial o Prisión Preventiva fundado en el peligro de fuga u obstaculización (Art. 178 CPP)."
+            },
+            {
+                question: "¿Puede un Juez de Paz celebrar una Audiencia de Declaración de Imputado en materia penal?",
+                options: [
+                    "No, bajo ninguna circunstancia.",
+                    "Sí, actuando a prevención en municipios donde no exista Juzgado de Letras.",
+                    "Sí, pero solo si la pena es mayor de 20 años.",
+                    "Únicamente con autorización previa de la Corte Suprema."
+                ],
+                correctIndex: 1,
+                explanation: "El Artículo 59 numeral 1 del CPP otorga competencia a los Jueces de Paz para conocer requerimientos y actuaciones urgentes a prevención cuando no sea posible lograr la intervención del Juez de Letras."
+            },
+            {
+                question: "¿Qué salida alternativa puede ser promovida por la defensa en la Declaración de Imputado por un delito menos grave patrimonial?",
+                options: ["Indulto presidencial", "Conciliación (Art. 45 CPP) o Suspensión Condicional", "Juicio Político", "Extradición voluntaria"],
+                correctIndex: 1,
+                explanation: "En delitos menos graves o que admiten la suspensión de la persecución, procede la Conciliación (Art. 45 CPP) para reparar el daño y extinguir la acción penal."
+            }
+        ];
+
+        // Main App Component
+        function App() {
+            const [activeTab, setActiveTab] = useState('matrix'); // 'matrix', 'simulator', 'flowchart', 'quiz'
+            const [searchQuery, setSearchQuery] = useState('');
+            const [selectedCategory, setSelectedCategory] = useState('all');
+            const [selectedItemDetail, setSelectedItemDetail] = useState(null);
+            
+            // Simulator State
+            const [simCrime, setSimCrime] = useState(CRIMES_DATABASE[0]);
+            const [simCustomPenalty, setSimCustomPenalty] = useState(10);
+            const [simCustomType, setSimCustomType] = useState('preset'); // 'preset' or 'custom'
+
+            // Quiz State
+            const [quizAnswers, setQuizAnswers] = useState({});
+            const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+            // Filtered comparison items
+            const filteredData = useMemo(() => {
+                return COMPARISON_DATA.filter(item => {
+                    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+                    const q = searchQuery.toLowerCase();
+                    const matchesSearch = item.criterion.toLowerCase().includes(q) ||
+                                          item.grave.summary.toLowerCase().includes(q) ||
+                                          item.menosGrave.summary.toLowerCase().includes(q) ||
+                                          item.grave.articles.toLowerCase().includes(q) ||
+                                          item.menosGrave.articles.toLowerCase().includes(q);
+                    return matchesCategory && matchesSearch;
+                });
+            }, [searchQuery, selectedCategory]);
+
+            // Quiz handlers
+            const handleQuizSelect = (qIdx, oIdx) => {
+                if (quizSubmitted) return;
+                setQuizAnswers(prev => ({ ...prev, [qIdx]: oIdx }));
+            };
+
+            const calculateQuizScore = () => {
+                let score = 0;
+                QUIZ_QUESTIONS.forEach((q, idx) => {
+                    if (quizAnswers[idx] === q.correctIndex) score++;
+                });
+                return score;
+            };
+
+            const resetQuiz = () => {
+                setQuizAnswers({});
+                setQuizSubmitted(false);
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    {/* Top Header Banner */}
+                    <header className="bg-slate-900 text-white shadow-xl border-b border-slate-800 no-print">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-1">
+                                        <span className="bg-blue-600 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md text-white shadow-sm">
+                                            Derecho Procesal Penal Hondureño
+                                        </span>
+                                        <span className="text-xs text-slate-400 font-mono">
+                                            Código Procesal Penal (Dec. 9-99-E)
+                                        </span>
+                                    </div>
+                                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight">
+                                        Audiencia de Declaración de Imputado
+                                    </h1>
+                                    <p className="text-sm text-slate-300 mt-1">
+                                        Estudio Comparativo Interactivo: <span className="text-red-400 font-semibold">Delito Grave</span> vs <span className="text-emerald-400 font-semibold">Delito Menos Grave</span>
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => window.print()} 
+                                        className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition border border-slate-700 shadow-sm"
+                                        title="Imprimir o Guardar PDF"
+                                    >
+                                        <i className="fa-solid fa-print"></i>
+                                        <span>Imprimir / PDF</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Main Navigation Tabs */}
+                            <nav className="flex space-x-1 sm:space-x-2 mt-6 border-b border-slate-800 overflow-x-auto custom-scrollbar pb-1">
+                                <button
+                                    onClick={() => setActiveTab('matrix')}
+                                    className={`px-4 py-2.5 rounded-t-lg font-semibold text-sm transition flex items-center gap-2 whitespace-nowrap ${
+                                        activeTab === 'matrix'
+                                            ? 'bg-slate-800 text-blue-400 border-b-2 border-blue-500 shadow'
+                                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                                    }`}
+                                >
+                                    <i className="fa-solid fa-table-columns"></i>
+                                    Cuadro Comparativo
+                                </button>
+
+                                <button
+                                    onClick={() => setActiveTab('simulator')}
+                                    className={`px-4 py-2.5 rounded-t-lg font-semibold text-sm transition flex items-center gap-2 whitespace-nowrap ${
+                                        activeTab === 'simulator'
+                                            ? 'bg-slate-800 text-blue-400 border-b-2 border-blue-500 shadow'
+                                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                                    }`}
+                                >
+                                    <i className="fa-solid fa-calculator"></i>
+                                    Evaluador Práctico / Casos
+                                </button>
+
+                                <button
+                                    onClick={() => setActiveTab('flowchart')}
+                                    className={`px-4 py-2.5 rounded-t-lg font-semibold text-sm transition flex items-center gap-2 whitespace-nowrap ${
+                                        activeTab === 'flowchart'
+                                            ? 'bg-slate-800 text-blue-400 border-b-2 border-blue-500 shadow'
+                                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                                    }`}
+                                >
+                                    <i className="fa-solid fa-diagram-project"></i>
+                                    Línea de Tiempo (Plazos)
+                                </button>
+
+                                <button
+                                    onClick={() => setActiveTab('quiz')}
+                                    className={`px-4 py-2.5 rounded-t-lg font-semibold text-sm transition flex items-center gap-2 whitespace-nowrap ${
+                                        activeTab === 'quiz'
+                                            ? 'bg-slate-800 text-blue-400 border-b-2 border-blue-500 shadow'
+                                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                                    }`}
+                                >
+                                    <i className="fa-solid fa-graduation-cap"></i>
+                                    Autoevaluación
+                                </button>
+                            </nav>
+                        </div>
+                    </header>
+
+                    {/* Main Container */}
+                    <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 print-full">
+
+                        {/* TAB 1: COMPARATIVE MATRIX */}
+                        {activeTab === 'matrix' && (
+                            <div className="space-y-6">
+                                {/* Search & Category Filters */}
+                                <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between no-print">
+                                    <div className="relative w-full md:w-96">
+                                        <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                        <input
+                                            type="text"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            placeholder="Buscar por palabra clave, artículo o criterio..."
+                                            className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        />
+                                        {searchQuery && (
+                                            <button 
+                                                onClick={() => setSearchQuery('')}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                                            >
+                                                <i className="fa-solid fa-xmark"></i>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+                                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Filtrar:</span>
+                                        <button
+                                            onClick={() => setSelectedCategory('all')}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap ${
+                                                selectedCategory === 'all'
+                                                    ? 'bg-slate-900 text-white shadow-sm'
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                            }`}
+                                        >
+                                            Todos ({COMPARISON_DATA.length})
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedCategory('Medidas Cautelares')}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap ${
+                                                selectedCategory === 'Medidas Cautelares'
+                                                    ? 'bg-slate-900 text-white shadow-sm'
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                            }`}
+                                        >
+                                            Medidas Cautelares
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedCategory('Estrategia de Partes')}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap ${
+                                                selectedCategory === 'Estrategia de Partes'
+                                                    ? 'bg-slate-900 text-white shadow-sm'
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                            }`}
+                                        >
+                                            Peticiones MP / Defensa
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedCategory('Plazos Procesales')}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap ${
+                                                selectedCategory === 'Plazos Procesales'
+                                                    ? 'bg-slate-900 text-white shadow-sm'
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                            }`}
+                                        >
+                                            Plazos
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Header badges summary */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-gradient-to-r from-red-900 to-red-800 text-white p-5 rounded-xl shadow-md border border-red-700 flex items-start justify-between">
+                                        <div>
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-950/60 text-red-200 text-xs font-semibold mb-2">
+                                                <i className="fa-solid fa-shield-halved"></i> Penas &gt; 5 Años
+                                            </div>
+                                            <h3 className="text-xl font-bold tracking-tight">Audiencia con Delito Grave</h3>
+                                            <p className="text-xs text-red-100 mt-1">
+                                                Enfoque de privación cautelar de libertad (Detención Judicial) y plazo perentorio de 6 días para la Audiencia Inicial.
+                                            </p>
+                                        </div>
+                                        <span className="bg-red-700/50 p-3 rounded-lg text-2xl text-red-100 hidden sm:block">
+                                            <i className="fa-solid fa-lock"></i>
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-gradient-to-r from-emerald-900 to-emerald-800 text-white p-5 rounded-xl shadow-md border border-emerald-700 flex items-start justify-between">
+                                        <div>
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/60 text-emerald-200 text-xs font-semibold mb-2">
+                                                <i className="fa-solid fa-handshake"></i> Penas ≤ 5 Años
+                                            </div>
+                                            <h3 className="text-xl font-bold tracking-tight">Audiencia con Delito Menos Grave</h3>
+                                            <p className="text-xs text-emerald-100 mt-1">
+                                                Enfoque de medidas sustitutivas (Art. 173), apertura a salidas alternativas (conciliación) y plazo de hasta 60 días.
+                                            </p>
+                                        </div>
+                                        <span className="bg-emerald-700/50 p-3 rounded-lg text-2xl text-emerald-100 hidden sm:block">
+                                            <i className="fa-solid fa-door-open"></i>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Main Side-by-Side Comparison Grid */}
+                                <div className="space-y-4">
+                                    {filteredData.length === 0 ? (
+                                        <div className="bg-white p-12 text-center rounded-xl border border-slate-200">
+                                            <i className="fa-solid fa-folder-open text-4xl text-slate-300 mb-3"></i>
+                                            <p className="text-slate-600 font-medium">No se encontraron criterios de comparación con la búsqueda actual.</p>
+                                            <button 
+                                                onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}
+                                                className="mt-3 text-sm text-blue-600 hover:underline font-semibold"
+                                            >
+                                                Limpiar Filtros
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        filteredData.map((item) => (
+                                            <div 
+                                                key={item.id} 
+                                                className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition hover:shadow-md print-card"
+                                            >
+                                                {/* Criterion Banner */}
+                                                <div className="bg-slate-100 px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-sm">
+                                                            <i className={`fa-solid ${item.icon}`}></i>
+                                                        </span>
+                                                        <h4 className="font-bold text-slate-900 text-base">
+                                                            {item.criterion}
+                                                        </h4>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-semibold px-2.5 py-1 bg-slate-200 text-slate-700 rounded-md">
+                                                            {item.category}
+                                                        </span>
+                                                        <button 
+                                                            onClick={() => setSelectedItemDetail(item)}
+                                                            className="text-xs text-blue-600 hover:text-blue-800 font-semibold underline px-2 py-1 no-print"
+                                                        >
+                                                            Ver Análisis Profundo
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Comparison Columns */}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+                                                    {/* Delito Grave */}
+                                                    <div className="p-5 bg-red-50/30">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-xs font-bold uppercase tracking-wider text-red-700 flex items-center gap-1.5">
+                                                                <i className="fa-solid fa-circle-exclamation"></i> Delito Grave
+                                                            </span>
+                                                            <span className="text-xs font-mono bg-red-100 text-red-800 px-2 py-0.5 rounded font-semibold">
+                                                                {item.grave.articles}
+                                                            </span>
+                                                        </div>
+                                                        <h5 className="font-bold text-slate-900 text-sm mb-2">
+                                                            {item.grave.summary}
+                                                        </h5>
+                                                        <p className="text-xs text-slate-700 leading-relaxed">
+                                                            {item.grave.description}
+                                                        </p>
+                                                    </div>
+
+                                                    {/* Delito Menos Grave */}
+                                                    <div className="p-5 bg-emerald-50/30">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                                                                <i className="fa-solid fa-circle-check"></i> Delito Menos Grave
+                                                            </span>
+                                                            <span className="text-xs font-mono bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">
+                                                                {item.menosGrave.articles}
+                                                            </span>
+                                                        </div>
+                                                        <h5 className="font-bold text-slate-900 text-sm mb-2">
+                                                            {item.menosGrave.summary}
+                                                        </h5>
+                                                        <p className="text-xs text-slate-700 leading-relaxed">
+                                                            {item.menosGrave.description}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB 2: PRACTICAL SIMULATOR & CASE EVALUATOR */}
+                        {activeTab === 'simulator' && (
+                            <div className="space-y-6">
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                                    <div className="max-w-3xl">
+                                        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                                            <i className="fa-solid fa-scale-balanced text-blue-600"></i>
+                                            Evaluador de Casos y Calificación Procesal
+                                        </h2>
+                                        <p className="text-sm text-slate-600 mt-1">
+                                            Seleccione un delito preconfigurado del Código Penal de Honduras o ingrese la pena esperada para determinar inmediatamente la dinámica de la Audiencia de Declaración de Imputado, pretensiones y plazos procesales.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                                        {/* Input Panel */}
+                                        <div className="space-y-4 bg-slate-50 p-5 rounded-lg border border-slate-200">
+                                            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
+                                                1. Selección de Parámetros del Caso
+                                            </h3>
+
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                                                    Modo de Ingreso:
+                                                </label>
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => setSimCustomType('preset')}
+                                                        className={`flex-1 py-1.5 text-xs font-semibold rounded ${
+                                                            simCustomType === 'preset' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'
+                                                        }`}
+                                                    >
+                                                        Delito de Catálogo
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setSimCustomType('custom')}
+                                                        className={`flex-1 py-1.5 text-xs font-semibold rounded ${
+                                                            simCustomType === 'custom' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'
+                                                        }`}
+                                                    >
+                                                        Pena Personalizada
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {simCustomType === 'preset' ? (
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                                                        Seleccione el Delito a Analizar:
+                                                    </label>
+                                                    <select
+                                                        value={simCrime.name}
+                                                        onChange={(e) => {
+                                                            const found = CRIMES_DATABASE.find(c => c.name === e.target.value);
+                                                            if (found) setSimCrime(found);
+                                                        }}
+                                                        className="w-full p-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                                    >
+                                                        {CRIMES_DATABASE.map(c => (
+                                                            <option key={c.name} value={c.name}>
+                                                                {c.name} ({c.severity === 'grave' ? 'Grave' : 'Menos Grave'})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                                                            Pena Máxima Abstracta Privativa de Libertad (Años):
+                                                        </label>
+                                                        <input 
+                                                            type="number" 
+                                                            min="1" 
+                                                            max="30" 
+                                                            value={simCustomPenalty}
+                                                            onChange={(e) => setSimCustomPenalty(Number(e.target.value))}
+                                                            className="w-full p-2 text-sm bg-white border border-slate-300 rounded-lg"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="bg-blue-50 p-3 rounded text-xs text-blue-900 border border-blue-200">
+                                                <i className="fa-solid fa-circle-info mr-1"></i>
+                                                <strong>Regla Procesal (Art. 178 vs 173 CPP):</strong> Delitos con penas superiores a 5 años presumen gravedad e imposición de privación cautelar de libertad. Penas hasta 5 años habilitan medidas sustitutivas.
+                                            </div>
+                                        </div>
+
+                                        {/* Output / Analysis Panel */}
+                                        {(() => {
+                                            const isGrave = simCustomType === 'preset' ? simCrime.severity === 'grave' : simCustomPenalty > 5;
+                                            const crimeName = simCustomType === 'preset' ? simCrime.name : `Delito con Pena de ${simCustomPenalty} Años`;
+                                            const penaltyText = simCustomType === 'preset' ? simCrime.penalty : `${simCustomPenalty} años de prisión`;
+
+                                            return (
+                                                <div className={`p-5 rounded-lg border flex flex-col justify-between ${
+                                                    isGrave ? 'bg-red-50/50 border-red-200' : 'bg-emerald-50/50 border-emerald-200'
+                                                }`}>
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white ${
+                                                                isGrave ? 'bg-red-600' : 'bg-emerald-600'
+                                                            }`}>
+                                                                {isGrave ? 'CLASIFICACIÓN: DELITO GRAVE' : 'CLASIFICACIÓN: DELITO MENOS GRAVE'}
+                                                            </span>
+                                                            <span className="text-xs font-bold text-slate-500">
+                                                                Análisis en Tiempo Real
+                                                            </span>
+                                                        </div>
+
+                                                        <h3 className="text-lg font-extrabold text-slate-900">
+                                                            {crimeName}
+                                                        </h3>
+                                                        <p className="text-xs text-slate-600 font-semibold mt-0.5">
+                                                            Pena Abstracta: {penaltyText}
+                                                        </p>
+
+                                                        <div className="mt-4 space-y-3">
+                                                            <div className="bg-white p-3 rounded border border-slate-200 shadow-sm">
+                                                                <span className="text-xs font-bold text-slate-500 uppercase block">
+                                                                    Medida Cautelar Predominante:
+                                                                </span>
+                                                                <span className={`text-sm font-bold block mt-0.5 ${
+                                                                    isGrave ? 'text-red-700' : 'text-emerald-700'
+                                                                }`}>
+                                                                    {isGrave ? 'Detención Judicial / Prisión Preventiva (Art. 178 CPP)' : 'Medidas Cautelares Sustitutivas (Art. 173 CPP)'}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="bg-white p-3 rounded border border-slate-200 shadow-sm">
+                                                                <span className="text-xs font-bold text-slate-500 uppercase block">
+                                                                    Plazo Máximo para Audiencia Inicial (Art. 292 CPP):
+                                                                </span>
+                                                                <span className="text-sm font-bold text-slate-900 block mt-0.5">
+                                                                    {isGrave ? 'HASTA 6 DÍAS HÁBILES (Perentorio)' : 'HASTA 60 DÍAS CALENDARIOS'}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="bg-white p-3 rounded border border-slate-200 shadow-sm">
+                                                                <span className="text-xs font-bold text-slate-500 uppercase block">
+                                                                    Estrategia Recomendada para la Defensa:
+                                                                </span>
+                                                                <p className="text-xs text-slate-700 mt-1">
+                                                                    {isGrave 
+                                                                        ? 'Presentar formalmente documentación de ARRAIGO (constancia laboral, escritura/contrato de vivienda, partida de nacimiento de hijos) para desvirtuar el peligro de fuga del Art. 179 CPP.' 
+                                                                        : 'Proponer inmediatamente un ACUERDO CONCILIATORIO (Art. 45 CPP) o Suspensión Condicional de la Persecución Penal (Art. 36 CPP) para lograr la extinción de la causa.'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-4 pt-3 border-t border-slate-200/60 text-right">
+                                                        <span className="text-xs font-mono text-slate-500">
+                                                            Órgano Judicial: Juzgado de Letras Penal Competente
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB 3: TIMELINE & FLOWCHART VISUALIZER */}
+                        {activeTab === 'flowchart' && (
+                            <div className="space-y-6">
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                                    <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                                        <i className="fa-solid fa-diagram-project text-blue-600 mr-2"></i>
+                                        Flujo Procesal y Comparativa de Plazos (Art. 292 CPP)
+                                    </h2>
+                                    <p className="text-sm text-slate-600 mb-6">
+                                        Visualización del iter procesal desde el Requerimiento Fiscal hasta la celebración de la Audiencia Inicial según la gravedad del delito.
+                                    </p>
+
+                                    {/* Flow Diagrams */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        {/* Delito Grave Timeline */}
+                                        <div className="bg-red-50/40 p-5 rounded-xl border border-red-200">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <span className="w-3 h-3 rounded-full bg-red-600"></span>
+                                                <h3 className="font-extrabold text-red-900 text-lg">
+                                                    Flujo Procesal: Delito Grave
+                                                </h3>
+                                            </div>
+
+                                            <div className="relative pl-6 border-l-2 border-red-300 space-y-6 my-4">
+                                                <div className="relative">
+                                                    <span className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+                                                    <h4 className="font-bold text-slate-900 text-sm">Presentación del Requerimiento Fiscal</h4>
+                                                    <p className="text-xs text-slate-600">Con orden de captura o ejecutada la detención en flagrancia.</p>
+                                                </div>
+
+                                                <div className="relative">
+                                                    <span className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+                                                    <h4 className="font-bold text-slate-900 text-sm">Audiencia de Declaración de Imputado</h4>
+                                                    <p className="text-xs text-slate-600">Información de derechos, intimación de cargos y oportunidad de declarar.</p>
+                                                </div>
+
+                                                <div className="relative">
+                                                    <span className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-bold">3</span>
+                                                    <div className="bg-white p-3 rounded-lg border border-red-200 shadow-sm">
+                                                        <h4 className="font-bold text-red-700 text-sm">Resolución: DETENCIÓN JUDICIAL</h4>
+                                                        <p className="text-xs text-slate-600 mt-1">
+                                                            El Juez impone privación cautelar de libertad (Art. 178 CPP) y remite al centro penitenciario.
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="relative">
+                                                    <span className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-bold">4</span>
+                                                    <div className="bg-red-600 text-white p-3 rounded-lg shadow">
+                                                        <span className="text-xs uppercase font-extrabold tracking-wider block opacity-80">
+                                                            Plazo Estricto Perentorio
+                                                        </span>
+                                                        <h4 className="font-extrabold text-base">
+                                                            AUDIENCIA INICIAL EN HASTA 6 DÍAS
+                                                        </h4>
+                                                        <p className="text-xs text-red-100 mt-1">
+                                                            Contados desde la fecha en que se decretó la Detención Judicial.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Delito Menos Grave Timeline */}
+                                        <div className="bg-emerald-50/40 p-5 rounded-xl border border-emerald-200">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <span className="w-3 h-3 rounded-full bg-emerald-600"></span>
+                                                <h3 className="font-extrabold text-emerald-900 text-lg">
+                                                    Flujo Procesal: Delito Menos Grave
+                                                </h3>
+                                            </div>
+
+                                            <div className="relative pl-6 border-l-2 border-emerald-300 space-y-6 my-4">
+                                                <div className="relative">
+                                                    <span className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+                                                    <h4 className="font-bold text-slate-900 text-sm">Requerimiento Fiscal / Citación Directa</h4>
+                                                    <p className="text-xs text-slate-600">Comparecencia por citación formal o aprehensión por delito menor.</p>
+                                                </div>
+
+                                                <div className="relative">
+                                                    <span className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+                                                    <h4 className="font-bold text-slate-900 text-sm">Audiencia de Declaración de Imputado</h4>
+                                                    <p className="text-xs text-slate-600">Intimación de hechos y exploración de conciliación o salidas expeditas.</p>
+                                                </div>
+
+                                                <div className="relative">
+                                                    <span className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">3</span>
+                                                    <div className="bg-white p-3 rounded-lg border border-emerald-200 shadow-sm">
+                                                        <h4 className="font-bold text-emerald-700 text-sm">Resolución: MEDIDAS SUSTITUTIVAS</h4>
+                                                        <p className="text-xs text-slate-600 mt-1">
+                                                            Imposición de medidas del Art. 173 CPP (firmas, caución, prohibición de salida).
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="relative">
+                                                    <span className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">4</span>
+                                                    <div className="bg-emerald-600 text-white p-3 rounded-lg shadow">
+                                                        <span className="text-xs uppercase font-extrabold tracking-wider block opacity-80">
+                                                            Plazo Holgado Ordinario
+                                                        </span>
+                                                        <h4 className="font-extrabold text-base">
+                                                            AUDIENCIA INICIAL EN HASTA 60 DÍAS
+                                                        </h4>
+                                                        <p className="text-xs text-emerald-100 mt-1">
+                                                            Plazo ordinario para evacuación de diligencias y acuerdos.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB 4: SELF-ASSESSMENT QUIZ */}
+                        {activeTab === 'quiz' && (
+                            <div className="space-y-6">
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-3xl mx-auto">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-slate-900">
+                                                <i className="fa-solid fa-graduation-cap text-blue-600 mr-2"></i>
+                                                Cuestionario de Autoevaluación
+                                            </h2>
+                                            <p className="text-sm text-slate-600 mt-0.5">
+                                                Ponga a prueba sus conocimientos sobre el trámite de la Audiencia de Declaración de Imputado en Honduras.
+                                            </p>
+                                        </div>
+                                        {quizSubmitted && (
+                                            <div className="text-right">
+                                                <span className="text-xs font-semibold text-slate-500 uppercase block">Calificación</span>
+                                                <span className="text-2xl font-extrabold text-blue-600">
+                                                    {calculateQuizScore()} / {QUIZ_QUESTIONS.length}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        {QUIZ_QUESTIONS.map((q, qIdx) => (
+                                            <div key={qIdx} className="p-5 rounded-lg border border-slate-200 bg-slate-50">
+                                                <h3 className="font-bold text-slate-900 text-sm mb-3">
+                                                    {qIdx + 1}. {q.question}
+                                                </h3>
+
+                                                <div className="space-y-2">
+                                                    {q.options.map((opt, oIdx) => {
+                                                        const isSelected = quizAnswers[qIdx] === oIdx;
+                                                        const isCorrect = q.correctIndex === oIdx;
+                                                        
+                                                        let btnStyle = "bg-white border-slate-300 text-slate-700 hover:bg-slate-100";
+                                                        if (quizSubmitted) {
+                                                            if (isCorrect) btnStyle = "bg-emerald-100 border-emerald-500 text-emerald-900 font-bold";
+                                                            else if (isSelected) btnStyle = "bg-red-100 border-red-500 text-red-900";
+                                                        } else if (isSelected) {
+                                                            btnStyle = "bg-blue-50 border-blue-600 text-blue-900 font-semibold ring-1 ring-blue-600";
+                                                        }
+
+                                                        return (
+                                                            <button
+                                                                key={oIdx}
+                                                                onClick={() => handleQuizSelect(qIdx, oIdx)}
+                                                                disabled={quizSubmitted}
+                                                                className={`w-full text-left p-3 rounded-lg border text-xs transition flex items-center justify-between ${btnStyle}`}
+                                                            >
+                                                                <span>{opt}</span>
+                                                                {quizSubmitted && isCorrect && (
+                                                                    <i className="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+                                                                )}
+                                                                {quizSubmitted && isSelected && !isCorrect && (
+                                                                    <i className="fa-solid fa-circle-xmark text-red-600 text-base"></i>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {quizSubmitted && (
+                                                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-xs text-blue-900">
+                                                        <strong>Explicación Legal:</strong> {q.explanation}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+                                        {!quizSubmitted ? (
+                                            <button
+                                                onClick={() => setQuizSubmitted(true)}
+                                                disabled={Object.keys(quizAnswers).length < QUIZ_QUESTIONS.length}
+                                                className={`px-6 py-2.5 rounded-lg text-sm font-bold text-white shadow transition ${
+                                                    Object.keys(quizAnswers).length < QUIZ_QUESTIONS.length
+                                                        ? 'bg-slate-400 cursor-not-allowed'
+                                                        : 'bg-blue-600 hover:bg-blue-700'
+                                                }`}
+                                            >
+                                                Calificar Respuestas
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={resetQuiz}
+                                                className="px-6 py-2.5 rounded-lg text-sm font-bold bg-slate-900 text-white hover:bg-slate-800 transition"
+                                            >
+                                                Reintentar Cuestionario
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                    </main>
+
+                    {/* DETAIL MODAL FOR DEEP ANALYSIS */}
+                    {selectedItemDetail && (
+                        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar p-6">
+                                <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <span className="p-2 bg-slate-900 text-white rounded-lg text-sm">
+                                            <i className={`fa-solid ${selectedItemDetail.icon}`}></i>
+                                        </span>
+                                        <h3 className="font-extrabold text-slate-900 text-lg">
+                                            {selectedItemDetail.criterion}
+                                        </h3>
+                                    </div>
+                                    <button 
+                                        onClick={() => setSelectedItemDetail(null)}
+                                        className="text-slate-400 hover:text-slate-600 p-1"
+                                    >
+                                        <i className="fa-solid fa-xmark text-xl"></i>
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {/* Delito Grave Detailed Card */}
+                                    <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                                        <span className="text-xs font-bold text-red-700 uppercase tracking-wider block mb-1">
+                                            Análisis para Delitos Graves
+                                        </span>
+                                        <h4 className="font-bold text-slate-900 text-sm">
+                                            {selectedItemDetail.grave.summary}
+                                        </h4>
+                                        <p className="text-xs text-slate-700 mt-2 leading-relaxed">
+                                            {selectedItemDetail.grave.details}
+                                        </p>
+                                        <div className="mt-3 pt-2 border-t border-red-200/60 text-xs text-red-900 font-mono">
+                                            Base Legal: {selectedItemDetail.grave.articles}
+                                        </div>
+                                    </div>
+
+                                    {/* Delito Menos Grave Detailed Card */}
+                                    <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider block mb-1">
+                                            Análisis para Delitos Menos Graves
+                                        </span>
+                                        <h4 className="font-bold text-slate-900 text-sm">
+                                            {selectedItemDetail.menosGrave.summary}
+                                        </h4>
+                                        <p className="text-xs text-slate-700 mt-2 leading-relaxed">
+                                            {selectedItemDetail.menosGrave.details}
+                                        </p>
+                                        <div className="mt-3 pt-2 border-t border-emerald-200/60 text-xs text-emerald-900 font-mono">
+                                            Base Legal: {selectedItemDetail.menosGrave.articles}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 text-right">
+                                    <button
+                                        onClick={() => setSelectedItemDetail(null)}
+                                        className="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800"
+                                    >
+                                        Cerrar Análisis
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Footer */}
+                    <footer className="bg-slate-900 text-slate-400 border-t border-slate-800 py-6 text-center text-xs no-print">
+                        <div className="max-w-7xl mx-auto px-4">
+                            <p>© Código Procesal Penal de Honduras (Decreto No. 9-99-E) y Código Penal (Decreto No. 130-2017)</p>
+                            <p className="mt-1 text-slate-500">Herramienta interactiva de estudio comparativo y práctica legal para la Audiencia de Declaración de Imputado.</p>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
